@@ -1,0 +1,2 @@
+include ':encryptedPrefs'
+rootProject.name = "encryptedPrefs"
