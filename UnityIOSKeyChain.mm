@@ -5,7 +5,7 @@
 
 extern "C" {
 char* _Get(const char *cdataType);
-int _AddItem(const char *dataType, const char *value);
+int _Add(const char *dataType, const char *value);
 int _Delete(const char *dataType);
 }
 
@@ -34,7 +34,7 @@ char* _Get(const char *dataType)
 }
 
 
-int _AddItem(const char *dataType, const char *value)
+int _Add(const char *dataType, const char *value)
 {
     NSMutableDictionary* attributes = nil;
     NSMutableDictionary* query = [NSMutableDictionary dictionary];
