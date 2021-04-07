@@ -1,17 +1,16 @@
 #import <UIKit/UIKit.h>
 #import <Security/Security.h>
 
-#define SERVICE_NAME    @"com.ksks.ksks"
+#define SERVICE_NAME    @"ServiceName"
 
 extern "C" {
 char* _Get(const char *cdataType);
 int _AddItem(const char *dataType, const char *value);
+int _Delete(const char *dataType);
 }
 
 
-//検索の際にkSecAttrService, kSecAttrAccountの二つがユニークな値として扱われる。
-/// <param name="dataType">Type of data. emailAddress, 'token', 'refreshToken'</param>
-/// <returns>value(pass, token) if NULL = error</returns>
+//When searching, "kSecAttrService, kSecAttrAccount" will be used as a unique value.
 char* _Get(const char *dataType)
 {
     NSMutableDictionary* query = [NSMutableDictionary dictionary];
@@ -34,12 +33,7 @@ char* _Get(const char *dataType)
     }
 }
 
-//kSecAttrServiceにはbundleidentifer, kSecAttrAccountには検索のための情報を入れておくのが良さそう
-//exp.)emailAddress, 'token', 'refreshToken'
-//emailAddressとパスワードの組み合わせが一般的
-/// <param name="dataType">Type of data. emailAddress, 'token', 'refreshToken'</param>
-/// <param name="password">password or token</param>
-/// <returns>status 0 = noERR</returns>
+
 int _AddItem(const char *dataType, const char *value)
 {
     NSMutableDictionary* attributes = nil;
@@ -48,14 +42,12 @@ int _AddItem(const char *dataType, const char *value)
 
 
     [query setObject:(id)kSecClassGenericPassword forKey:(id)kSecClass];
-    //アカウントID（emailアドレスの受けとり）
     [query setObject:(id)[NSString stringWithCString:dataType encoding:NSUTF8StringEncoding] forKey:(id)kSecAttrAccount];
     [query setObject:SERVICE_NAME forKey:(id)kSecAttrService];
-    
-    //アカウント名で検索
+
     OSStatus err = SecItemCopyMatching((CFDictionaryRef)query, NULL);
     
-    //エラーがない=すでにデータが存在している場合はpasswaordと日時指定くらい
+    //if noErr, only update dateTime
     if (err == noErr) {
         // update item
         attributes = [NSMutableDictionary dictionary];
@@ -65,7 +57,7 @@ int _AddItem(const char *dataType, const char *value)
         err = SecItemUpdate((CFDictionaryRef)query, (CFDictionaryRef)attributes);
         return (int)err;
 
-    //エラーがある=データの最初の登録では設定すべき事項がいくつかある
+    //if err = errSecItemNotFound, item is not registered. make new item
     } else if (err == errSecItemNotFound) {
 
         attributes = [NSMutableDictionary dictionary];
@@ -80,6 +72,21 @@ int _AddItem(const char *dataType, const char *value)
         
     } else {
         return (int)err;
+    }
+}
+
+int _Delete(const char *dataType)
+{
+    NSMutableDictionary* query = [NSMutableDictionary dictionary];
+    [query setObject:(id)kSecClassGenericPassword forKey:(id)kSecClass];
+    [query setObject:(id)[NSString stringWithCString:dataType encoding:NSUTF8StringEncoding] forKey:(id)kSecAttrAccount];
+
+    OSStatus err = SecItemDelete((CFDictionaryRef)query);
+
+    if (err == noErr) {
+        return 0;
+    } else {
+        return (int)err
     }
 
 
